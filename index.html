@@ -30,6 +30,7 @@ a{color:inherit}
 .ctrl button:disabled{opacity:.35;cursor:default}
 .ctrl button:focus-visible,.toc a:focus-visible,.res a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .ctrl .ind{font:600 13px/1.2 var(--f-body);min-width:150px;text-align:center;font-variant-numeric:tabular-nums}
+body.full{padding-block:8px 8px}body.full .legend{display:none}body.full .ctrl{margin-bottom:8px}
 .ctrl .ghost{background:transparent;color:var(--stage-fg);border:1px solid var(--panel-line)}
 .legend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;font-size:12px;margin:0 auto 14px;opacity:.85}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
@@ -202,6 +203,7 @@ p{margin:0}
   <button type="button" id="bPrev" aria-label="Página anterior">&lsaquo; Anterior</button>
   <span class="ind" id="ind" aria-live="polite"></span>
   <button type="button" id="bNext" aria-label="Página siguiente">Siguiente &rsaquo;</button>
+  <button type="button" id="bFs" class="ghost" aria-pressed="false" title="Página completa (tecla F)">Página completa</button>
 </div>
 <div class="legend" aria-label="Ejes estratégicos">
   <span><i style="background:#3acafc"></i><i style="background:#aed7ff;margin-left:-3px"></i>Probidad</span>
@@ -691,8 +693,9 @@ p{margin:0}
       book.style.width='100%';
       return;
     }
-    var availH=Math.max(420,window.innerHeight-130);
-    var s2=Math.min((vw-8)/(W*2+20),availH/H,1.25);
+    var full=document.body.classList.contains('full');
+    var availH=Math.max(420,window.innerHeight-(full?72:130));
+    var s2=Math.min((vw-8)/(W*2+20),availH/H,full?2.2:1.25);
     scaler.style.transform='scale('+s2+')';
     scaler.style.width=(W*2*s2)+'px';
     scaler.style.height=(H*s2+24)+'px';
@@ -727,6 +730,30 @@ p{margin:0}
   });
   document.getElementById('bPrev').onclick=function(){ step(-1); };
   document.getElementById('bNext').onclick=function(){ step(1); };
+  var bFs=document.getElementById('bFs'), de=document.documentElement;
+  function setFull(on){
+    document.body.classList.toggle('full',on);
+    bFs.setAttribute('aria-pressed',on?'true':'false');
+    bFs.textContent=on?'Salir de página completa':'Página completa';
+    fit();
+  }
+  function toggleFull(){
+    var on=!document.body.classList.contains('full');
+    if(on){
+      setFull(true);
+      try{ var p=de.requestFullscreen&&de.requestFullscreen(); if(p&&p.catch){ p.catch(function(){}); } }catch(err){}
+    } else {
+      try{ if(document.fullscreenElement&&document.exitFullscreen){ document.exitFullscreen(); } }catch(err){}
+      setFull(false);
+    }
+  }
+  bFs.onclick=toggleFull;
+  document.addEventListener('fullscreenchange',function(){
+    if(!document.fullscreenElement && document.body.classList.contains('full')){ setFull(false); }
+  });
+  document.addEventListener('keydown',function(e){
+    if((e.key==='f'||e.key==='F')&&!e.ctrlKey&&!e.metaKey&&!e.altKey){ toggleFull(); }
+  });
   document.getElementById('bCover').onclick=function(){ go(1); };
   document.getElementById('bToc').onclick=function(){ go(2); };
   window.addEventListener('resize',fit);
